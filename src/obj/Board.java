@@ -1,7 +1,11 @@
 package obj;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+
+import util.DeepCopy;
 
 public class Board implements Serializable {
 
@@ -57,8 +61,9 @@ public class Board implements Serializable {
 				deckPosition++;
 				j++;
 
-				if(tempCard == null){
-				//Ability to just pass in a DrawPile is useful for debugging. No board cards
+				if (tempCard == null) {
+					// Ability to just pass in a DrawPile is useful for
+					// debugging. No board cards
 					continue;
 				}
 				if (j == cardsToPlace)
@@ -104,6 +109,50 @@ public class Board implements Serializable {
 		if (!Arrays.equals(this.scoringPositions, other.scoringPositions))
 			return false;
 		return true;
+	}
+
+	/**
+	 * Deck is a nicer formatting than Java Serialization. Converts Board
+	 * Serialization -> My format
+	 * 
+	 * @return
+	 */
+	public static String writeOutDeck() {
+		String fileName = "C:\\Users\\User\\Desktop\\board1.srl";
+
+		Board b = (Board) DeepCopy.readFromFile(fileName);
+
+		StringBuilder sBuilder = new StringBuilder();
+
+		for (int i = 0; i < b.playPositions.length; i++) {
+			PlayPosition playPosition = b.playPositions[i];
+			List<Card> playPosCards = playPosition.getListOfCards();
+			for (Card c : playPosCards) {
+				sBuilder.append(c + "\n");
+
+			}
+			sBuilder.append("_" + i + "Stack\n");
+
+		}
+
+		List<Card> cards = b.drawPile.getStackAsList();
+
+		int ctr = 0;
+
+		for (int i = 0; i < cards.size(); i++) {
+			sBuilder.append(cards.get(i).toString() + "\n");
+			ctr++;
+			if (ctr % 3 == 0) {
+				sBuilder.append("_" + ctr / 3 + "Pile\n");
+			}
+		}
+
+		return sBuilder.toString();
+
+	}
+
+	public static void main(String[] args) {
+		System.out.println(writeOutDeck());
 	}
 
 }

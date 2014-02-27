@@ -6,39 +6,47 @@ import java.util.Collections;
 import obj.Card;
 import obj.GameState;
 import obj.PlayPosition;
+import obj.ScoringPosition;
 
 public class RepositioningMove extends Move {
+
 	/**
 	 * 
+	 * @param moveOrigin
 	 * @param cardIntitialPlayAreaColumn
+	 *            - Only applies to PlayPostion originating moves. Makes no
+	 *            sense for DrawPile or ScoringPosition, which pass in -1
 	 * @param cardBeingMoved
 	 * @param destinationColumn
 	 * @param desiredParentCard
-	 *            Can be NULL in cases
+	 *            - Can be NULL in cases
 	 */
-	public RepositioningMove(int cardIntitialPlayAreaColumn,
-			Card cardBeingMoved, int destinationColumn, Card desiredParentCard) {
-		super(cardIntitialPlayAreaColumn, cardBeingMoved, destinationColumn,
-				desiredParentCard);
+	public RepositioningMove(MoveOrigin moveOrigin,
+			int cardIntitialPlayAreaColumn, Card cardBeingMoved,
+			int destinationColumn, Card desiredParentCard) {
+		super(moveOrigin, cardIntitialPlayAreaColumn, cardBeingMoved,
+				destinationColumn, desiredParentCard);
 	}
 
 	@Override
 	public GameState execute(GameState initial) {
 		GameState g = new GameState(initial, this);
 
-		// Other cases can involve moving many cards
-		// Pop them from destination, store temporarily, push to new
-		// location.
-
 		ArrayList<Card> temp = new ArrayList<Card>();
-		// DrawPile to Play Area Case
-		if (cardIntitialPlayAreaColumn == -1) {
-			Card c = g.board.drawPile.remove();
+		Card c = null;
+
+		switch (moveOrigin) {
+		case DRAW_PILE:
+			c = g.board.drawPile.remove();
 			c.isVisible = true;
 			g.board.playPositions[destinationColumn].addCardToPile(c);
-		} else {// Play Area to Play Area Case
+			break;
+		case PLAY_POSITION:
 			PlayPosition p = g.board.playPositions[cardIntitialPlayAreaColumn];
-			Card c = null;
+
+			// May can involve moving many cards
+			// Pop them from source, store temporarily, push to new
+			// destination.
 			do {
 				c = p.removeCardFromPile();
 
@@ -51,8 +59,52 @@ public class RepositioningMove extends Move {
 			for (Card z : temp) {
 				g.board.playPositions[destinationColumn].addCardToPile(z);
 			}
+			break;
+		case SCORING_POSITION:
+
+			ScoringPosition scoringPosition = cardBeingMoved
+					.getSuitsScoringPosition(g.board);
+
+			c = scoringPosition.showTopCard();
+			if (c == null || !(c.equals(cardBeingMoved))) {
+				throw new RuntimeException(
+						"Major issue. Scoring position removal is off.");
+			}
+
+			c = scoringPosition.removeCardFromPile();
+
+			g.board.playPositions[destinationColumn].addCardToPile(c);
+
+			break;
+		default:
+			break;
 		}
+
 		return g;
 	}
 
+	@Override
+	public String toString() {
+		String desiredParentName = "empty";
+		if (desiredParentCard != null) {
+			desiredParentName = desiredParentCard.toString();
+		}
+		switch (moveOrigin) {
+		case DRAW_PILE:
+			return "Moving DrawPile {" + cardBeingMoved
+					+ "} to PlayPosition : Column " + destinationColumn + " { "
+					+ desiredParentName + "}";
+		case PLAY_POSITION:
+			return "Moving PlayPosition : Column " + cardIntitialPlayAreaColumn
+					+ " {" + cardBeingMoved + "} to PlayPosition : Column "
+					+ destinationColumn + " {" + desiredParentName + "}";
+		case SCORING_POSITION:
+			return "Moving ScoringPosition {" + cardBeingMoved
+					+ "} to PlayPosition : Column " + destinationColumn + " {"
+					+ desiredParentName + "}";
+		default:
+			return "";
+		}
+
+	}
 }

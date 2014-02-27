@@ -1,14 +1,8 @@
 package actions;
 
-import obj.Card;
 import obj.GameState;
 
 public class DrawPileHit extends Move {
-
-	public DrawPileHit(int cardIntitialPlayAreaColumn, Card cardBeingMoved,
-			int destinationColumn) {
-		super(cardIntitialPlayAreaColumn, cardBeingMoved, destinationColumn, null);
-	}
 
 	public DrawPileHit() {
 		super();
@@ -25,7 +19,7 @@ public class DrawPileHit extends Move {
 
 	@Override
 	public String toString() {
-		return "Hitting Draw Button";
+		return "***Hitting Draw Button***";
 	}
 
 	

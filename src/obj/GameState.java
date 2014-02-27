@@ -8,40 +8,43 @@ import java.util.List;
 import actions.DrawPileHit;
 import actions.Move;
 import actions.MoveComparator;
+import actions.MoveOrigin;
 import actions.RepositioningMove;
 import actions.ScoringMove;
 import util.DeepCopy;
 import util.StatePrinter;
 
 public class GameState {
+	// Debugging options
 	private static boolean drawSolutionOn = false;
 	private static boolean consoleOutputOn = false;
-
-	private static long totalGameStates = 0;
 
 	public long thisGameStateNumber = -1;
 
 	GameState parentState = null;
 	Move moveAssociatedWithThisState = null;
 
-	// Parent HashSet. Holds all states that have been looked at.
+	// Parent HashSet. Holds all states that have been looked at. All GameStates
+	// share this. Should be static?
 	HashSet<GameState> investigatedGameStates = null;
 
 	public Board board;
 	public Deck deck;
-	// All moves from this state
+	// All available moves from this state
 	public ArrayList<Move> possibleMoves = new ArrayList<Move>();
-	// The last possible move investigated
+	// The possible move from the List of possible Moves that we are currently
+	// investigating
 	int currentlyInvestigatedMove = 0;
 
 	int numberOfKingsExposed = 0;
 
+	// State associated with all GameStates of the currently investigated Game
+	private static long totalGameStates = 0;
 	private static boolean terminateProcessing = false;
-
 	public static boolean solutionWasFound = false;
-
 	public static GameSolution gameSolution = null;
 
+	// We only need one. We will have many GameStates. Saves a bit of memory.
 	public static MoveComparator moveComparator = new MoveComparator();
 
 	/**
@@ -258,21 +261,7 @@ public class GameState {
 
 	private void findValidMoves() {
 
-		// Check scoring moves first
-		// if (board.drawPile.hasAccessibleCard) {
-		// addScoringMove(-1, board.drawPile.peek(), true);
-		// }
-		// for (int playColumn = 0; playColumn < board.playPositions.length;
-		// playColumn++) {
-		// PlayPosition playPosition = board.playPositions[playColumn];
-		//
-		// if (playPosition.isEmpty() == false) {
-		// addScoringMove(playColumn, playPosition.showTopCard(), false);
-		//
-		// }
-		// }
-
-		// PlayPosition Possiblities
+		// PlayPosition Possibilities
 		for (int playColumn = 0; playColumn < board.playPositions.length; playColumn++) {
 			PlayPosition playPosition = board.playPositions[playColumn];
 			// Can optimize later for weird cases where moves can expose
@@ -303,11 +292,103 @@ public class GameState {
 			addDrawPileToPlayPositionMove(board.drawPile.peek());
 		}
 
+		// There are times when using cards we've scored can help us get more
+		// cards. Either by allowing us to expose play position piles or pull
+		// off the drawpile.
+
+		addScoringPositionToPlayPositionMove();
+
 		if (board.drawPile.canHit()) {
 			if (board.drawPile.makesSenseToHitDrawPile(board.playPositions,
 					this.board)) {
 				possibleMoves.add(new DrawPileHit());
 			}
+		}
+	}
+
+	// In order for this to happen a scoring card must be able to be placed
+	// on the board. Also, another playPosition card, which if we could move
+	// it would be a wise move (exposes a card), or we can place a drawpile
+	// card.
+	private void addScoringPositionToPlayPositionMove() {
+		for (int scoringPositionIndex = 0; scoringPositionIndex < board.scoringPositions.length; scoringPositionIndex++) {
+			// Get each scoring position's top card
+			Card scoredCard = board.scoringPositions[scoringPositionIndex]
+					.showTopCard();
+			if (scoredCard == null) {
+				continue;
+			}
+			for (int playPositionIndex = 0; playPositionIndex < board.playPositions.length; playPositionIndex++) {
+				// Get each playPosition's top card
+				PlayPosition playPosition = board.playPositions[playPositionIndex];
+
+				if (playPosition.isEmpty()) {
+					continue;
+				}
+				Card playPositionTopCard = playPosition.showTopCard();
+
+				// Can we place the score card onto a Play Position?
+				if (scoredCard.matchesPlayPosition(playPositionTopCard)) {
+					// valid move, but does it make sense?
+					doesItMakeSenseToMoveAScoredCard(scoredCard,
+							playPositionIndex, playPositionTopCard);
+				}
+
+			}
+		}
+	}
+
+//	@formatter:off
+/**
+ * There are 3 cases where this makes sense:
+ * 1) If the scoredCard lets us remove a DrawPile card
+ * 2) If the scoredCard lets us move a PlayPosition card that exposes another card or leaves space for a king
+ * 3) The scoredCard is covering a card that fits 1 of the 2 above criteria. This could go deep... Not currently implemented.
+ * // TODO We may need to pull a 5 of Hearts, to pull the 4 of hearts, to finally get 3 of clubs off the drawpile. Not currently thinking of that though
+ *
+ * @param scoredCard - Card currently in the scoring position, that we are considering moving back to the Play Position
+ * @param playPositionIndex - Column we are considering moving scoredCard to
+ * @param playPositionTopCard - ??? The card the scoredCard will be placed on??? 
+ * 
+ */
+	//@formatter:on
+	private void doesItMakeSenseToMoveAScoredCard(Card scoredCard,
+			int playPositionIndex, Card playPositionTopCard) {
+
+		boolean makesSense = false;
+		Card drawPileTopCard = board.drawPile.peek();
+
+		if (drawPileTopCard == null) {
+			return;
+		}
+
+		if (drawPileTopCard.matchesPlayPosition(scoredCard)) {
+			makesSense = true;
+		} else {
+			// Look at all the playPositions, except where the scoredCard is
+			// being considered for movement
+			for (int i = 0; i < board.playPositions.length; i++) {
+				if (i == playPositionIndex) {
+					continue;
+				}
+				List<Card> playPositionCards = board.playPositions[i]
+						.getListOfVisibleCards();
+				// If the scoredCard's movement allows a playPosition card to be
+				// moved in a valid, "wise" way, we want to move the card
+				for (Card card : playPositionCards) {
+					if (card.matchesPlayPosition(scoredCard)) {
+						if (isWiseMove(card, i)) {
+							makesSense = true;
+						}
+					}
+				}
+			}
+		}
+
+		if (makesSense) {
+			possibleMoves.add(new RepositioningMove(
+					MoveOrigin.SCORING_POSITION, -1, scoredCard,
+					playPositionIndex, playPositionTopCard));
 		}
 	}
 
@@ -338,8 +419,8 @@ public class GameState {
 
 					if (isWiseMove(underConsideration, cardsOriginalColumn)) {
 						possibleMoves.add(new RepositioningMove(
-								cardsOriginalColumn, underConsideration, i,
-								boardTopCard));
+								MoveOrigin.PLAY_POSITION, cardsOriginalColumn,
+								underConsideration, i, boardTopCard));
 					}
 
 				}
@@ -347,45 +428,73 @@ public class GameState {
 				if (underConsideration.rank.equals(Rank.KING)) {
 					if (isWiseMove(underConsideration, cardsOriginalColumn))
 						possibleMoves.add(new RepositioningMove(
-								cardsOriginalColumn, underConsideration, i,
-								null));
+								MoveOrigin.PLAY_POSITION, cardsOriginalColumn,
+								underConsideration, i, null));
 				}
 			}
 		}
 
 	}
 
+//	@formatter:off
 	/**
+	 * Used for considering moves from the Play Position and Scoring Position to the Play Position 
+	 * 
 	 * Ok, so its a valid move. Is it a move that advances us toward our goal?
 	 * 
-	 * For cards in the Playing Field there are a few beneficial moves: 1)
-	 * Reveal a card 2) Shift a card so that the exposed can score
-	 * 
-	 * 3) Open a spot up for a king to move FUTURE(make sure all kings haven't
-	 * already moved)
-	 * 
+	 * For cards in the Playing Field there are a few beneficial moves:
+	 * 1) Reveal a card 
+	 * 2) Shift a card so that the exposed can score
+	 * 3) Open a spot up for a king to move 
+	 * //TODO We miss out in a few rare cases. Imagine a board with 2 exposed 7s. One 7 
+	 * has nothing below it. THe other has cards. There are no exposed kings. 
+	 * Currently the move of the 7 with nothing under it is never taken
 	 * 
 	 * @param underConsideration
 	 * @param cardsOriginalColumn
 	 * @return boolean
 	 */
+//	@formatter:on
+
 	private boolean isWiseMove(Card underConsideration, int cardsOriginalColumn) {
 		Card parent = underConsideration.coversThisCard;
 
 		if (parent == null) {
 			if (underConsideration.rank.equals(Rank.KING)) {
-				// Get count of exposed kings, and extra space. If all exposed,
-				// false.
-				// Otherwise tradeoff of space versus needed.
-
-				// TODO hackish. Need real implementation
+				// No point in moving Kings around if its not exposing a
+				// card.
 				return false;
-			}
-			return true; // TODO consider kings in the future. Leaving cards
-							// where they are when there are no more Kings can
-							// be pulled down. Optimization
-		}
+			} else {
+				// If there is a King that can be moved from the drawpile to the
+				// Play Position, that's a good thing
+				Card tempCard = board.drawPile.peek();
+				if (tempCard != null && tempCard.rank.equals(Rank.KING)) {
+					return true;
+				}
 
+				for (int i = 0; i < board.playPositions.length; i++) {
+					if (i == cardsOriginalColumn) {
+						continue;
+					}
+
+					PlayPosition playPosition = board.playPositions[i];
+
+					for (Card c : playPosition.getListOfVisibleCards()) {
+						if (c.rank.equals(Rank.KING)) {
+							if (c.coversThisCard != null) {
+								// Also, if an exposed King has a Parent (card
+								// it covers), that card must be flipped over.
+								// So moving that King is a good thing
+								return true;
+							}
+						}
+					}
+				}
+
+			}
+			return false;
+		}
+		// There's value in exposing cards and scoring them
 		return (parent.isVisible == false || parent.canScore(board));
 	}
 
@@ -401,12 +510,14 @@ public class GameState {
 
 				if (underConsideration.matchesPlayPosition(boardTopCard)) {
 					possibleMoves.add(new RepositioningMove(
+							MoveOrigin.DRAW_PILE,
 							DrawPile.drawPileColumnNumber, underConsideration,
 							i, boardTopCard));
 				}
 			} else {
 				if (underConsideration.rank.equals(Rank.KING)) {
 					possibleMoves.add(new RepositioningMove(
+							MoveOrigin.DRAW_PILE,
 							DrawPile.drawPileColumnNumber, underConsideration,
 							i, null));
 				}
@@ -431,8 +542,8 @@ public class GameState {
 				possibleMoves.add(new ScoringMove(
 						getSuitsScoringPositionIndex(card), card));
 			} else {
-				possibleMoves.add(new ScoringMove(cardsColumn, card,
-						getSuitsScoringPositionIndex(card)));
+				possibleMoves.add(new ScoringMove(MoveOrigin.PLAY_POSITION,
+						cardsColumn, card, getSuitsScoringPositionIndex(card)));
 			}
 		}
 	}
@@ -538,6 +649,7 @@ public class GameState {
 	public static void resetStaticState() {
 		totalGameStates = 0;
 		solutionWasFound = false;
+		terminateProcessing = false;
 		gameSolution = null;
 	}
 

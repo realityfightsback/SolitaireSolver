@@ -10,7 +10,9 @@ import javax.swing.JFrame;
 import obj.Board;
 import obj.Card;
 import obj.CardPosition;
+import obj.Deck;
 import obj.GameState;
+import test.DeckTest;
 
 @SuppressWarnings("serial")
 public class StatePrinter extends JFrame {
@@ -159,30 +161,24 @@ public class StatePrinter extends JFrame {
 
 	}
 
-	static String fileName = "C:\\Users\\User\\Desktop\\deck3.srl";
+	public static void printDeck(String[] args) {
 
-	public static void main(String[] args) {
+		Deck d = new Deck("NonTrivial");
+		DeckTest.testlogic(d);
+		Board b = new Board(d);
+		GameState g = new GameState(b);
 
-//		Board b = (Board) DeepCopy.readFromFile(fileName);
-
-//		b.scoringPositions[0].addCardToPile(new Card(Suit.CLUBS, Rank.ACE));
-		GameState g = new GameState();
-
-		DeepCopy.writeToFile(g.board, fileName);
-		
 		StatePrinter.getInstance().setGameState(g);
 
-		// for (int i = 0; i < 2; i++) {
-		//
-		// Deck d = new Deck();
-		// Board b = new Board(d);
-		//
-		// StatePrinter sPrinter = StatePrinter.getInstance();
-		// // sPrinter.setBoard(b);
-		//
-		// // b.scoringPositions[0].addCardToPile(new Card(Suit.CLUBS,
-		// // Rank.ACE));
-		// // sPrinter.repaint();
-		// }
+	}
+
+	public static void main(String[] args) {
+		String fileName = "C:\\Users\\User\\Desktop\\board1.srl";
+
+		Board b = (Board) DeepCopy.readFromFile(fileName);
+
+		GameState g = new GameState(b);
+
+		StatePrinter.getInstance().setGameState(g);
 	}
 }

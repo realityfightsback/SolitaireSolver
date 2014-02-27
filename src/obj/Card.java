@@ -5,6 +5,10 @@ import java.awt.Graphics;
 import java.io.Serializable;
 
 public class Card implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public Suit suit;
 	public Rank rank;
 	// Has it been flipped over?
@@ -335,7 +339,7 @@ public class Card implements Serializable {
 	 * @return ScoringPosition
 	 */
 
-	private ScoringPosition getSuitsScoringPosition(Board board) {
+	public ScoringPosition getSuitsScoringPosition(Board board) {
 
 		for (int i = 0; i < board.scoringPositions.length; i++) {
 			if (board.scoringPositions[i].suit.equals(this.suit)) {

@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Stack;
 
 public class CardPosition implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private Stack<Card> cardStack = new Stack<Card>();
 
 	public void addCardToPile(Card tempCard) {

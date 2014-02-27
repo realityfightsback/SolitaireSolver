@@ -6,10 +6,10 @@ import obj.PlayPosition;
 
 public class ScoringMove extends Move {
 
-	public ScoringMove(int cardIntitialPlayAreaColumn, Card cardBeingMoved,
-			int destinationColumn) {
-		super(cardIntitialPlayAreaColumn, cardBeingMoved, destinationColumn,
-				null);
+	public ScoringMove(MoveOrigin moveOrigin, int cardIntitialPlayAreaColumn,
+			Card cardBeingMoved, int destinationColumn) {
+		super(moveOrigin, cardIntitialPlayAreaColumn, cardBeingMoved,
+				destinationColumn, null);
 	}
 
 	/**
@@ -19,21 +19,30 @@ public class ScoringMove extends Move {
 	 */
 	public ScoringMove(int destinationColumn, Card cardBeingMoved) {
 		this.cardBeingMoved = cardBeingMoved;
-		this.involvesDrawPile = true;
+		this.moveOrigin = MoveOrigin.DRAW_PILE;
 		this.destinationColumn = destinationColumn;
 	}
 
 	@Override
 	public GameState execute(GameState initial) {
-		// Scoring only happens with the top most card
+		// Scoring only happens with the top most card of the drawpile or
+		// playPosition
 		GameState g = new GameState(initial, this);
 
 		Card c = null;
-		if (involvesDrawPile) {
+		switch (moveOrigin) {
+		case DRAW_PILE:
 			c = g.board.drawPile.remove();
-		} else {
+			break;
+
+		case PLAY_POSITION:
 			PlayPosition p = g.board.playPositions[cardIntitialPlayAreaColumn];
 			c = p.removeCardFromPile();
+			break;
+
+		case SCORING_POSITION:
+			throw new RuntimeException(
+					"Non-sensical to have a scoring move from a scoring position");
 		}
 
 		g.board.scoringPositions[destinationColumn].addCardToPile(c);
@@ -43,7 +52,14 @@ public class ScoringMove extends Move {
 
 	@Override
 	public String toString() {
-		return "Moving " + cardBeingMoved + " into scoring area";
+		switch (moveOrigin) {
+		case DRAW_PILE:
+			return "+++ Scoring DrawPile{" + cardBeingMoved + "}";
+		case PLAY_POSITION:
+			return "+++ Scoring PlayPosition{" + cardBeingMoved + "}";
+		default:
+			return "Nonsensical Move";
+		}
 	}
 
 }

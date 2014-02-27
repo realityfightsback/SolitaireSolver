@@ -40,6 +40,7 @@ public class DrawPile implements Serializable {
 
 	public boolean hasAccessibleCard = true;
 
+	// For passing into the Moves constructors. We don't come from a column
 	public static int drawPileColumnNumber = -1;
 
 	// Related to looking through the pile to determine whether we can get moves
@@ -286,7 +287,8 @@ public class DrawPile implements Serializable {
 	/**
 	 * Helper for determining whether DrawPile operations will be beneficial
 	 * 
-	 * @return Set of all possible top DrawPile Cards
+	 * @return Set of all possible top DrawPile Cards in this iteration of the
+	 *         Draw Pile
 	 */
 
 	public HashSet<Card> getTopCardsLeft() {
@@ -425,6 +427,15 @@ public class DrawPile implements Serializable {
 	 */
 	public void setCanHit(boolean b) {
 		drawPileProps.canHit = b;
+	}
+
+	/**
+	 * For debugging/serialization purposes
+	 * 
+	 * @return
+	 */
+	public List<Card> getStackAsList() {
+		 return drawingPile.subList(0, drawingPile.size());
 	}
 
 }

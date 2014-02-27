@@ -18,7 +18,7 @@ public class GameInitializer {
 
 		if (writeState) {
 			g = new GameState();
-//			DeepCopy.writeToFile(g.board, fileName);
+			DeepCopy.writeToFile(g.board, fileName);
 		} else {
 			b = (Board) DeepCopy.readFromFile(fileName);
 

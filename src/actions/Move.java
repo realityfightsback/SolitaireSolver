@@ -9,7 +9,7 @@ import obj.GameState;
  * @author User
  * 
  */
-public abstract class Move implements  Comparable<Move> {
+public abstract class Move implements Comparable<Move> {
 	int cardIntitialPlayAreaColumn;
 	Card cardBeingMoved;
 	int destinationColumn;
@@ -18,20 +18,18 @@ public abstract class Move implements  Comparable<Move> {
 	GameState parentState;
 	int parentsMoveNum = -1;
 
-	boolean involvesDrawPile = false;
+	MoveOrigin moveOrigin;
 
 	public Move() {
 
 	}
 
-	public Move(int cardIntitialPlayAreaColumn, Card cardBeingMoved,
-			int destinationColumn, Card desiredParentCard) {
+	public Move(MoveOrigin moveOrigin, int cardIntitialPlayAreaColumn,
+			Card cardBeingMoved, int destinationColumn, Card desiredParentCard) {
 		super();
 		this.cardIntitialPlayAreaColumn = cardIntitialPlayAreaColumn;
 
-		if (cardIntitialPlayAreaColumn == -1) {
-			involvesDrawPile = true;
-		}
+		this.moveOrigin = moveOrigin;
 
 		this.cardBeingMoved = cardBeingMoved;
 		this.destinationColumn = destinationColumn;
@@ -39,7 +37,7 @@ public abstract class Move implements  Comparable<Move> {
 	}
 
 	/**
-	 * Convience. Can help see how we got to this point.
+	 * Convenience. Can help see how we got to this point.
 	 * 
 	 * @param moveNumber
 	 * @param parentState
@@ -60,13 +58,6 @@ public abstract class Move implements  Comparable<Move> {
 
 	public void printMove() {
 		System.out.println(this.toString());
-	}
-
-	@Override
-	public String toString() {
-		return "Moving " + cardBeingMoved + " from Column "
-				+ cardIntitialPlayAreaColumn + " to Column "
-				+ destinationColumn + " to match with " + desiredParentCard;
 	}
 
 	// Prioritize scoring. Make Drawing hits lowest priority

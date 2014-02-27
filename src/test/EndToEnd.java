@@ -15,48 +15,29 @@ public class EndToEnd {
 		GameState.resetStaticState();
 	}
 
-	// @Test
+	/**
+	 * No possible moves from the given state. We expect this to realize there
+	 * are no states worth investigating (no flips that would be beneficial,
+	 * nothing available) and finish processing.
+	 */
+	@Test
 	public void noMoves() {
-
-		Board b = new Board(
-				new Deck(
-						"C:\\Users\\User\\Desktop\\Dev\\workspaces\\JEE\\SolitaireSolver\\NoMoves"));
-		GameState g = new GameState(b);
-
-		g.performGameLogic();
-
-		Assert.assertEquals(
-				"Did not take the expect number of game state investigations",
-				1, GameState.getStateNumber());
-
-		Assert.assertFalse(GameState.solutionWasFound);
+		loader("NoMoves", 1, false, false);
 	}
 
 	@Test
 	public void simpleBoard() {
-
-		Board b = new Board(
-				new Deck(
-						"C:\\Users\\User\\Desktop\\Dev\\workspaces\\JEE\\SolitaireSolver\\EasyGame2"));
-		GameState g = new GameState(b);
-
-		GameState.setDrawSolutionOn();
-
-		g.performGameLogic();
-
-		Assert.assertEquals(
-				"Did not take the expect number of game state investigations",
-				60, GameState.getStateNumber());
-
-		Assert.assertTrue(GameState.solutionWasFound);
+		loader("EasyGame2", 60, true, true);
 	}
 
-	// @Test
+	/**
+	 * A simple GameState with no DrawPile (only stacks on the board). The board
+	 * can all be scored.
+	 */
+	@Test
 	public void simpleBoardNoDrawPile() {
 
-		Board b = new Board(
-				new Deck(
-						"C:\\Users\\User\\Desktop\\Dev\\workspaces\\JEE\\SolitaireSolver\\EasyGame1 (No DrawPile)"));
+		Board b = new Board(new Deck("EasyGame1 (No DrawPile)"));
 		b.drawPile.hasAccessibleCard = false;
 		b.drawPile.setCanHit(false);
 
@@ -73,12 +54,36 @@ public class EndToEnd {
 		Assert.assertTrue(GameState.solutionWasFound);
 	}
 
-	// @Test
+	/**
+	 * A simple GameState with only the DrawPile (nothing on the board). The
+	 * DrawPile is set up so that all the cards can be scored.
+	 */
+	@Test
 	public void simpleBoardOnlyDrawPile() {
+		loader("EasyGame3 (Only DrawPile)", 18, true, true);
 
-		Board b = new Board(
-				new Deck(
-						"C:\\Users\\User\\Desktop\\Dev\\workspaces\\JEE\\SolitaireSolver\\EasyGame3 (Only DrawPile)"));
+	}
+
+	/**
+	 * A Game I played and was able to beat, transcribed from Windows (painful)
+	 */
+	@Test
+	public void nonTrivialCase() {
+		loader("NonTrivial", -1, false, true);
+	}
+
+	/**
+	 * This one takes a lot more states, look at, maybe some optimizations in
+	 * order.
+	 */
+	@Test
+	public void nonTrivialCase2() {
+		loader("NonTrivial2", -1, false, true);
+	}
+
+	private void loader(String fileName, int statesExpected,
+			boolean checkPerformance, boolean solutionExpected) {
+		Board b = new Board(new Deck(fileName));
 
 		GameState g = new GameState(b);
 
@@ -86,11 +91,15 @@ public class EndToEnd {
 
 		g.performGameLogic();
 
-		Assert.assertEquals(
-				"Did not take the expect number of game state investigations",
-				18, GameState.getStateNumber());
-
-		Assert.assertTrue(GameState.solutionWasFound);
+		if (checkPerformance) {
+			Assert.assertEquals(
+					"Did not take the expect number of game state investigations",
+					statesExpected, GameState.getStateNumber());
+		}
+		if (solutionExpected) {
+			Assert.assertTrue(GameState.solutionWasFound);
+		} else {
+			Assert.assertFalse(GameState.solutionWasFound);
+		}
 	}
-
 }
